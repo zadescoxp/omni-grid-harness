@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Omni Grid Harness</title>
+  <meta name="description" content="Autonomous agents negotiating scarce power across Bengaluru's critical utilities during a disaster.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235B4FD6'/%3E%3Cpath d='M18 4 8 18h7l-2 10 11-15h-7z' fill='%23F5C342'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+</head>
+<body>
+  <div id="map" aria-label="3D map of Bengaluru with simulated utility facilities"></div>
+
+  <!-- Left: brand, scenario, policy, KPIs -->
+  <aside class="panel left">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#5B4FD6"/><path d="M18 4 8 18h7l-2 10 11-15h-7z" fill="#F5C342"/></svg>
+      </span>
+      <div>
+        <h1>Omni Grid Harness</h1>
+        <p>Bengaluru · autonomous crisis power negotiation</p>
+      </div>
+    </div>
+
+    <section>
+      <h2>Disaster scenario</h2>
+      <div id="scenario-list" class="chips"></div>
+      <p id="scenario-desc" class="muted small"></p>
+    </section>
+
+    <section>
+      <h2>Allocation policy</h2>
+      <div id="policy-list" class="policies"></div>
+      <label id="learn-row" class="toggle">
+        <input id="learn-toggle" type="checkbox">
+        <span class="switch" aria-hidden="true"></span>
+        <span>Agents keep learning from this run</span>
+      </label>
+      <button id="run-btn" class="primary" type="button">Run simulation</button>
+      <p id="model-info" class="muted tiny"></p>
+    </section>
+
+    <section class="kpis">
+      <div class="kpi">
+        <span class="k-label">Grid supply</span>
+        <span class="k-value"><span id="kpi-supply">—</span><small> MW</small></span>
+        <span id="kpi-demand" class="k-sub"></span>
+      </div>
+      <div class="kpi">
+        <span class="k-label">Total damage</span>
+        <span id="kpi-damage" class="k-value">—</span>
+        <span id="kpi-damage-sub" class="k-sub"></span>
+      </div>
+      <div class="kpi">
+        <span class="k-label">Fairness (Jain)</span>
+        <span id="kpi-fair" class="k-value">—</span>
+        <span class="k-sub">1.0 = everyone equally served</span>
+      </div>
+      <div class="kpi">
+        <span class="k-label">Cascade events</span>
+        <span id="kpi-cascades" class="k-value">—</span>
+        <span id="kpi-cascades-sub" class="k-sub"></span>
+      </div>
+      <div class="kpi wide">
+        <span class="k-label">Capacity violations</span>
+        <span id="kpi-viol" class="k-value">—</span>
+        <span id="kpi-viol-sub" class="k-sub"></span>
+      </div>
+    </section>
+  </aside>
+
+  <!-- Right: live log, agents, comparison -->
+  <aside class="panel right">
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="log" role="tab">Negotiation</button>
+      <button class="tab" data-tab="agents" role="tab">Agents</button>
+      <button class="tab" data-tab="compare" role="tab">Compare</button>
+    </nav>
+    <div id="pane-log" class="pane log"></div>
+    <div id="pane-agents" class="pane agents" hidden></div>
+    <div id="pane-compare" class="pane compare" hidden>
+      <div id="compare-body"></div>
+      <h3>RL learning curve</h3>
+      <canvas id="learning-canvas" class="learning"></canvas>
+      <p class="legend-line tiny">
+        <span><i class="sw rl"></i>RL greedy policy</span>
+        <span><i class="sw base"></i>Rule-based agents</span>
+        <span><i class="sw live"></i>Live learning runs</span>
+      </p>
+      <p id="learning-note" class="muted small"></p>
+    </div>
+  </aside>
+
+  <!-- Top centre HUD -->
+  <div class="hud">
+    <span class="clock" id="clock">00:00</span>
+    <span id="episode-tag" class="tag"></span>
+    <span id="hud-dark" class="hud-dark"></span>
+  </div>
+  <div id="banner" class="banner" hidden></div>
+
+  <!-- Bottom: playback and timeline -->
+  <footer class="dock">
+    <button id="play-btn" class="icon-btn play" type="button" aria-label="Play">
+      <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      <svg class="i-pause" viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+    </button>
+    <div class="speeds" role="group" aria-label="Playback speed">
+      <button class="speed" data-speed="0.5" type="button">½×</button>
+      <button class="speed active" data-speed="1" type="button">1×</button>
+      <button class="speed" data-speed="2" type="button">2×</button>
+      <button class="speed" data-speed="4" type="button">4×</button>
+    </div>
+    <div class="timeline-wrap">
+      <canvas id="timeline" aria-label="Supply, critical demand and allocated power over 24 hours"></canvas>
+      <div class="timeline-key tiny">
+        <span><i class="sw supply"></i>Supply</span>
+        <span><i class="sw crit"></i>Critical demand</span>
+        <span><i class="sw alloc"></i>Allocated</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="map-tools" role="group" aria-label="Map controls">
+    <button id="orbit-btn" class="text-btn" type="button">⟳ Orbit</button>
+    <button id="labels-btn" class="text-btn active" type="button">Labels</button>
+    <button id="home-btn" class="text-btn" type="button">⌖ Whole city</button>
+  </div>
+
+  <div id="legend" class="legend"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
