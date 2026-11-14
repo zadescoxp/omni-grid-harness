@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Training scratch output
+models/*.tmp
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Local tooling
+.claude/
+
+# Ideation deck lives outside the code repo
+*.pptx
