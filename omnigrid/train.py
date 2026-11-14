@@ -11,7 +11,9 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import os
 import random
+import shutil
 import time
 from pathlib import Path
 
@@ -21,8 +23,21 @@ from .scenario import SCENARIOS, get_scenario, random_scenario
 from .simulation import Simulation
 
 ROOT = Path(__file__).resolve().parent.parent
-MODEL_PATH = ROOT / "models" / "qtable.json"
-CURVE_PATH = ROOT / "models" / "learning_curve.json"
+DEFAULT_DATA_DIR = ROOT / "models"
+DATA_DIR = Path(os.environ.get("OMNIGRID_DATA_DIR", str(DEFAULT_DATA_DIR))).expanduser()
+MODEL_PATH = DATA_DIR / "qtable.json"
+CURVE_PATH = DATA_DIR / "learning_curve.json"
+
+
+def initialize_data_dir(data_dir: Path = DATA_DIR, source_dir: Path = DEFAULT_DATA_DIR) -> None:
+    data_dir.mkdir(parents=True, exist_ok=True)
+    if data_dir.resolve() == source_dir.resolve():
+        return
+    for name in ("qtable.json", "learning_curve.json"):
+        source = source_dir / name
+        destination = data_dir / name
+        if source.is_file() and not destination.exists():
+            shutil.copy2(source, destination)
 
 
 def evaluate(team: QTeam, policy: str = "harness_rl") -> dict[str, float]:
@@ -49,6 +64,7 @@ def save_curve(curve: list[dict]) -> None:
 
 def train(episodes: int, eval_every: int, seed: int, eps_start: float, eps_end: float,
           fresh: bool) -> None:
+    initialize_data_dir()
     rng = random.Random(seed)
     team = QTeam(UTILITY_IDS, seed=seed)
     curve: list[dict] = []
