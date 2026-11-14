@@ -25,7 +25,7 @@ MODEL_PATH = ROOT / "models" / "qtable.json"
 CURVE_PATH = ROOT / "models" / "learning_curve.json"
 
 
-def evaluate(team: QTeam, policy: str = "gridpact_rl") -> dict[str, float]:
+def evaluate(team: QTeam, policy: str = "harness_rl") -> dict[str, float]:
     team.set_learning(False)
     out = {}
     for sid in SCENARIOS:
@@ -56,7 +56,7 @@ def train(episodes: int, eval_every: int, seed: int, eps_start: float, eps_end: 
         curve = load_curve()
         print(f"resuming from {team.episodes} episodes")
 
-    baseline = evaluate(team, "gridpact_heuristic")
+    baseline = evaluate(team, "harness_rules")
     best = evaluate(team)
     best_team = copy.deepcopy(team)
     print(f"heuristic baseline: {baseline}")
@@ -71,7 +71,7 @@ def train(episodes: int, eval_every: int, seed: int, eps_start: float, eps_end: 
         team.set_learning(True, epsilon)
         # Mix randomised disasters with the named ones so agents generalise but also see the demos.
         scenario = random_scenario(rng) if rng.random() < 0.75 else get_scenario(rng.choice(list(SCENARIOS)))
-        sim = Simulation(scenario, "gridpact_rl", team=team, seed=rng.randint(0, 10**6),
+        sim = Simulation(scenario, "harness_rl", team=team, seed=rng.randint(0, 10**6),
                          learn=True, narrate=False)
         sim.run()
 
