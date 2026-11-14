@@ -1,12 +1,13 @@
 // 3D Bengaluru map: OpenFreeMap vector tiles, extruded city blocks, and live utility facilities.
 /* global maplibregl */
+import { icon, KIND_ICON } from "./icons.js";
 
 export const STATUS = {
-  full: { color: "#F5C342", label: "Fully powered" },
-  essential: { color: "#F59E42", label: "Essential only" },
-  critical: { color: "#EF6C35", label: "Critical only" },
-  buffer: { color: "#8B5CF6", label: "On backup power" },
-  dark: { color: "#D93A3F", label: "Below critical" },
+  full: { color: "#C8F031", label: "Fully powered" },
+  essential: { color: "#F5D13D", label: "Essential only" },
+  critical: { color: "#FF8A3D", label: "Critical only" },
+  buffer: { color: "#8E8CF7", label: "On backup" },
+  dark: { color: "#F04438", label: "Below critical" },
 };
 
 const FACILITY_SIZE = { hospital: 140, water: 120, emergency: 100, telecom: 75 };
@@ -60,7 +61,7 @@ export class CityMap {
       center: [77.598, 12.976],
       zoom: 13.4,
       pitch: 58,
-      bearing: -72,
+      bearing: -20,
       maxPitch: 75,
       antialias: true,
       attributionControl: { compact: true },
@@ -103,11 +104,11 @@ export class CityMap {
       paint: {
         "fill-extrusion-color": [
           "interpolate", ["linear"], ["coalesce", ["get", "render_height"], 6],
-          0, "#dde2f0", 15, "#c7d0e8", 45, "#aebbdf", 100, "#93a5d4",
+          0, "#E4E4DE", 15, "#D6D7CF", 45, "#C4C6BC", 100, "#ADB0A4",
         ],
         "fill-extrusion-height": ["coalesce", ["get", "render_height"], 6],
         "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
-        "fill-extrusion-opacity": 0.88,
+        "fill-extrusion-opacity": 0.92,
         "fill-extrusion-vertical-gradient": true,
       },
     });
@@ -117,8 +118,8 @@ export class CityMap {
     map.addLayer({
       id: "feeders-glow", type: "line", source: "feeders",
       layout: { "line-cap": "round", "line-join": "round" },
-      paint: { "line-color": ["get", "color"], "line-width": ["*", ["get", "width"], 2.2],
-               "line-opacity": 0.14, "line-blur": 2 },
+      paint: { "line-color": ["get", "glow"], "line-width": ["*", ["get", "width"], 2.2],
+               "line-opacity": 0.4, "line-blur": 2 },
     });
     map.addLayer({
       id: "feeders-dash", type: "line", source: "feeders",
@@ -130,7 +131,7 @@ export class CityMap {
     map.addSource("facilities", { type: "geojson", data: this._facilities({}) });
     map.addLayer({
       id: "facility-plinth", type: "fill-extrusion", source: "facilities",
-      paint: { "fill-extrusion-color": "#3b3551", "fill-extrusion-height": 3,
+      paint: { "fill-extrusion-color": "#0E0F0C", "fill-extrusion-height": 3,
                "fill-extrusion-base": 0, "fill-extrusion-opacity": 0.9 },
     });
     map.addLayer({
@@ -150,7 +151,7 @@ export class CityMap {
     map.on("mouseenter", "facilities-3d", () => (map.getCanvas().style.cursor = "pointer"));
     map.on("mouseleave", "facilities-3d", () => (map.getCanvas().style.cursor = ""));
 
-    this._makeMarker({ id: "substation", name: sub.name, short: "Substation", icon: "⚡", lng: sub.lng, lat: sub.lat }, true);
+    this._makeMarker({ id: "substation", name: sub.name, short: "Substation", lng: sub.lng, lat: sub.lat }, true);
     for (const u of this.meta.utilities) this._makeMarker(u, false);
 
     this._animate();
@@ -158,25 +159,20 @@ export class CityMap {
     this._resolveReady();
   }
 
-  /** Camera that fits every facility (and its label) between the side panels and the dock. */
+  /** Camera that fits every facility (and its label) inside the map card. */
   _homeCamera() {
     const pts = this.meta.utilities.map((u) => [u.lng, u.lat]).concat([[this.meta.substation.lng, this.meta.substation.lat]]);
     const lngs = pts.map((p) => p[0]);
     const lats = pts.map((p) => p[1]);
     const bounds = [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]];
-    const css = getComputedStyle(document.documentElement);
-    const left = parseFloat(css.getPropertyValue("--left-w")) || 330;
-    const right = parseFloat(css.getPropertyValue("--right-w")) || 370;
-    const wide = window.innerWidth > 960;
-    // Horizontal padding leaves room for the half-width of a facility label.
-    const padding = wide
-      ? { top: 110, bottom: 190, left: left + 140, right: right + 140 }
-      : { top: 60, bottom: 40, left: 90, right: 90 };
-    const bearing = -72;   // rotates the network's long axis away from the screen's width
+    const { clientWidth: w } = this.container;
+    // Room for the HUD on top, the legend below, and half a label on each side.
+    const padding = w > 700 ? { top: 96, bottom: 70, left: 110, right: 110 } : { top: 80, bottom: 30, left: 60, right: 60 };
+    const bearing = w > 700 ? -20 : -72;
     const cam = this.map.cameraForBounds(bounds, { padding, bearing })
       || { center: [77.598, 12.976], zoom: 13.4 };
     // Stay at z13+ so the vector tiles include buildings.
-    return { center: cam.center, zoom: Math.max(13.05, Math.min(cam.zoom, 15)), pitch: 58, bearing };
+    return { center: cam.center, zoom: Math.max(13.05, Math.min(cam.zoom, 15)), pitch: 56, bearing };
   }
 
   _facilities(utilities) {
@@ -192,7 +188,7 @@ export class CityMap {
     const sub = this.meta.substation;
     features.push({
       type: "Feature",
-      properties: { id: "substation", color: "#5B4FD6", height: 45 },
+      properties: { id: "substation", color: "#1B1C18", height: 45 },
       geometry: { type: "Polygon", coordinates: square(sub.lng, sub.lat, 150) },
     });
     return { type: "FeatureCollection", features };
@@ -210,8 +206,9 @@ export class CityMap {
           type: "Feature",
           properties: {
             id: u.id,
-            color: STATUS[status].color,
-            width: 1.2 + Math.min(3.8, alloc / 5),
+            color: status === "dark" ? "#F04438" : "#0E0F0C",
+            glow: STATUS[status].color,
+            width: 1 + Math.min(2.4, alloc / 7),
             opacity: alloc > 0.05 ? 0.9 : 0.12,
           },
           geometry: { type: "LineString", coordinates: arc([sub.lng, sub.lat], [u.lng, u.lat]) },
@@ -225,8 +222,7 @@ export class CityMap {
     el.type = "button";
     el.className = "map-label" + (isSubstation ? " substation" : "");
     el.innerHTML = `
-      <span class="dot"></span>
-      <span class="ml-icon">${u.icon}</span>
+      <span class="ml-icon">${icon(isSubstation ? "bolt" : KIND_ICON[u.kind], 13)}</span>
       <span class="ml-name" title="${u.name}">${u.short || u.name}</span>
       <span class="ml-mw"></span>
       <span class="ml-chip"></span>`;
@@ -288,14 +284,10 @@ export class CityMap {
   home(duration = 1400) {
     const cam = this._homeCamera();
     const recentre = () => {
-      // With pitch and rotation the projected network is not symmetric; nudge it so the
-      // outermost labels sit evenly between the two side panels.
-      if (window.innerWidth <= 960) return;
-      const css = getComputedStyle(document.documentElement);
-      const left = (parseFloat(css.getPropertyValue("--left-w")) || 330) + 32;
-      const right = window.innerWidth - (parseFloat(css.getPropertyValue("--right-w")) || 370) - 32;
+      // With pitch the projected network is not symmetric; nudge it so the outermost labels
+      // sit evenly inside the card.
       const xs = this.meta.utilities.map((u) => this.map.project([u.lng, u.lat]).x);
-      const dx = (Math.min(...xs) + Math.max(...xs)) / 2 - (left + right) / 2;
+      const dx = (Math.min(...xs) + Math.max(...xs)) / 2 - this.container.clientWidth / 2;
       if (Math.abs(dx) > 4) this.map.panBy([dx, 0], { duration: duration ? 500 : 0 });
     };
     if (duration) {
