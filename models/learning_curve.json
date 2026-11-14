@@ -1,0 +1,411 @@
+[
+ {
+  "episode": 0,
+  "kind": "eval",
+  "monsoon_flood": 2514.94,
+  "heatwave": 1225.65,
+  "grid_collapse": 3341.09,
+  "total": 7081.68,
+  "heuristic_total": 7081.68
+ },
+ {
+  "episode": 500,
+  "kind": "eval",
+  "monsoon_flood": 2285.51,
+  "heatwave": 1161.87,
+  "grid_collapse": 2757.81,
+  "total": 6205.19,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.293
+ },
+ {
+  "episode": 1000,
+  "kind": "eval",
+  "monsoon_flood": 2653.17,
+  "heatwave": 1178.6,
+  "grid_collapse": 3671.21,
+  "total": 7502.98,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.286
+ },
+ {
+  "episode": 1500,
+  "kind": "eval",
+  "monsoon_flood": 2164.15,
+  "heatwave": 1337.99,
+  "grid_collapse": 2725.91,
+  "total": 6228.05,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.279
+ },
+ {
+  "episode": 2000,
+  "kind": "eval",
+  "monsoon_flood": 2120.1,
+  "heatwave": 1169.14,
+  "grid_collapse": 2725.4,
+  "total": 6014.64,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.272
+ },
+ {
+  "episode": 2500,
+  "kind": "eval",
+  "monsoon_flood": 2365.7,
+  "heatwave": 1160.68,
+  "grid_collapse": 2818.16,
+  "total": 6344.54,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.265
+ },
+ {
+  "episode": 3000,
+  "kind": "eval",
+  "monsoon_flood": 2445.17,
+  "heatwave": 1249.47,
+  "grid_collapse": 2727.15,
+  "total": 6421.79,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.258
+ },
+ {
+  "episode": 3500,
+  "kind": "eval",
+  "monsoon_flood": 2473.09,
+  "heatwave": 1418.17,
+  "grid_collapse": 2898.22,
+  "total": 6789.48,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.251
+ },
+ {
+  "episode": 4000,
+  "kind": "eval",
+  "monsoon_flood": 2534.09,
+  "heatwave": 1177.49,
+  "grid_collapse": 3134.21,
+  "total": 6845.79,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.244
+ },
+ {
+  "episode": 4500,
+  "kind": "eval",
+  "monsoon_flood": 2205.5,
+  "heatwave": 1126.96,
+  "grid_collapse": 3147.73,
+  "total": 6480.19,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.237
+ },
+ {
+  "episode": 5000,
+  "kind": "eval",
+  "monsoon_flood": 2351.32,
+  "heatwave": 1443.6,
+  "grid_collapse": 2827.29,
+  "total": 6622.21,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.23
+ },
+ {
+  "episode": 5500,
+  "kind": "eval",
+  "monsoon_flood": 2705.69,
+  "heatwave": 1446.6,
+  "grid_collapse": 3131.04,
+  "total": 7283.33,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.223
+ },
+ {
+  "episode": 6000,
+  "kind": "eval",
+  "monsoon_flood": 2165.69,
+  "heatwave": 1215.94,
+  "grid_collapse": 2795.39,
+  "total": 6177.02,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.216
+ },
+ {
+  "episode": 6500,
+  "kind": "eval",
+  "monsoon_flood": 2419.57,
+  "heatwave": 1284.74,
+  "grid_collapse": 3111.3,
+  "total": 6815.61,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.209
+ },
+ {
+  "episode": 7000,
+  "kind": "eval",
+  "monsoon_flood": 2463.49,
+  "heatwave": 1388.48,
+  "grid_collapse": 3181.13,
+  "total": 7033.1,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.202
+ },
+ {
+  "episode": 7500,
+  "kind": "eval",
+  "monsoon_flood": 2358.84,
+  "heatwave": 1160.12,
+  "grid_collapse": 2927.27,
+  "total": 6446.23,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.195
+ },
+ {
+  "episode": 8000,
+  "kind": "eval",
+  "monsoon_flood": 2189.45,
+  "heatwave": 1177.13,
+  "grid_collapse": 2973.78,
+  "total": 6340.36,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.188
+ },
+ {
+  "episode": 8500,
+  "kind": "eval",
+  "monsoon_flood": 2234.4,
+  "heatwave": 1125.78,
+  "grid_collapse": 4273.82,
+  "total": 7634.0,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.181
+ },
+ {
+  "episode": 9000,
+  "kind": "eval",
+  "monsoon_flood": 2447.02,
+  "heatwave": 1199.42,
+  "grid_collapse": 2819.08,
+  "total": 6465.52,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.174
+ },
+ {
+  "episode": 9500,
+  "kind": "eval",
+  "monsoon_flood": 2433.42,
+  "heatwave": 1314.61,
+  "grid_collapse": 2692.7,
+  "total": 6440.73,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.167
+ },
+ {
+  "episode": 10000,
+  "kind": "eval",
+  "monsoon_flood": 2245.66,
+  "heatwave": 1193.38,
+  "grid_collapse": 3139.89,
+  "total": 6578.93,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.16
+ },
+ {
+  "episode": 10500,
+  "kind": "eval",
+  "monsoon_flood": 2383.23,
+  "heatwave": 1133.47,
+  "grid_collapse": 2696.74,
+  "total": 6213.44,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.153
+ },
+ {
+  "episode": 11000,
+  "kind": "eval",
+  "monsoon_flood": 2362.11,
+  "heatwave": 1187.14,
+  "grid_collapse": 2791.96,
+  "total": 6341.21,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.146
+ },
+ {
+  "episode": 11500,
+  "kind": "eval",
+  "monsoon_flood": 2494.66,
+  "heatwave": 1207.48,
+  "grid_collapse": 2646.23,
+  "total": 6348.37,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.139
+ },
+ {
+  "episode": 12000,
+  "kind": "eval",
+  "monsoon_flood": 2194.6,
+  "heatwave": 1074.61,
+  "grid_collapse": 2945.04,
+  "total": 6214.25,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.132
+ },
+ {
+  "episode": 12500,
+  "kind": "eval",
+  "monsoon_flood": 2404.65,
+  "heatwave": 1159.1,
+  "grid_collapse": 2686.2,
+  "total": 6249.95,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.125
+ },
+ {
+  "episode": 13000,
+  "kind": "eval",
+  "monsoon_flood": 2442.69,
+  "heatwave": 1238.98,
+  "grid_collapse": 2988.67,
+  "total": 6670.34,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.118
+ },
+ {
+  "episode": 13500,
+  "kind": "eval",
+  "monsoon_flood": 2590.98,
+  "heatwave": 1243.48,
+  "grid_collapse": 3067.94,
+  "total": 6902.4,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.111
+ },
+ {
+  "episode": 14000,
+  "kind": "eval",
+  "monsoon_flood": 2582.8,
+  "heatwave": 1323.58,
+  "grid_collapse": 3102.7,
+  "total": 7009.08,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.104
+ },
+ {
+  "episode": 14500,
+  "kind": "eval",
+  "monsoon_flood": 2468.06,
+  "heatwave": 1201.8,
+  "grid_collapse": 3062.2,
+  "total": 6732.06,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.097
+ },
+ {
+  "episode": 15000,
+  "kind": "eval",
+  "monsoon_flood": 2638.68,
+  "heatwave": 1240.85,
+  "grid_collapse": 2754.15,
+  "total": 6633.68,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.09
+ },
+ {
+  "episode": 15500,
+  "kind": "eval",
+  "monsoon_flood": 2096.51,
+  "heatwave": 1226.58,
+  "grid_collapse": 2648.04,
+  "total": 5971.13,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.083
+ },
+ {
+  "episode": 16000,
+  "kind": "eval",
+  "monsoon_flood": 2257.99,
+  "heatwave": 983.22,
+  "grid_collapse": 2701.78,
+  "total": 5942.99,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.076
+ },
+ {
+  "episode": 16500,
+  "kind": "eval",
+  "monsoon_flood": 2429.6,
+  "heatwave": 1171.83,
+  "grid_collapse": 2881.64,
+  "total": 6483.07,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.069
+ },
+ {
+  "episode": 17000,
+  "kind": "eval",
+  "monsoon_flood": 2270.92,
+  "heatwave": 1186.38,
+  "grid_collapse": 2793.89,
+  "total": 6251.19,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.062
+ },
+ {
+  "episode": 17500,
+  "kind": "eval",
+  "monsoon_flood": 2635.81,
+  "heatwave": 1448.9,
+  "grid_collapse": 3360.89,
+  "total": 7445.6,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.055
+ },
+ {
+  "episode": 18000,
+  "kind": "eval",
+  "monsoon_flood": 2454.68,
+  "heatwave": 1154.3,
+  "grid_collapse": 2825.54,
+  "total": 6434.52,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.048
+ },
+ {
+  "episode": 18500,
+  "kind": "eval",
+  "monsoon_flood": 2204.17,
+  "heatwave": 1050.28,
+  "grid_collapse": 2778.18,
+  "total": 6032.63,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.041
+ },
+ {
+  "episode": 19000,
+  "kind": "eval",
+  "monsoon_flood": 2286.04,
+  "heatwave": 1227.99,
+  "grid_collapse": 3117.59,
+  "total": 6631.62,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.034
+ },
+ {
+  "episode": 19500,
+  "kind": "eval",
+  "monsoon_flood": 2356.28,
+  "heatwave": 1145.48,
+  "grid_collapse": 2797.4,
+  "total": 6299.16,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.027
+ },
+ {
+  "episode": 20000,
+  "kind": "eval",
+  "monsoon_flood": 2316.29,
+  "heatwave": 1151.75,
+  "grid_collapse": 2743.88,
+  "total": 6211.92,
+  "heuristic_total": 7081.68,
+  "epsilon": 0.02
+ }
+]
