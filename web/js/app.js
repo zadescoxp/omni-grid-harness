@@ -1,16 +1,18 @@
-// Omni Grid Harness dashboard: wires the API, the 3D map, playback and the side panels together.
+// Omni Grid Harness dashboard: wires the API, the 3D map, playback, infographics and panels together.
 import { api } from "./api.js";
-import { drawLearning, drawTimeline } from "./charts.js";
+import { drawCumulative, drawDamageBars, drawDotTimeline, drawLearning, drawPolicyBars, POLICY_COLORS } from "./charts.js";
+import { icon, logo } from "./icons.js";
 import { CityMap, STATUS } from "./map.js";
-import { renderAgents, renderCompare, renderLog } from "./panels.js";
+import { POLICY_SHORT, renderAgents, renderFeed, renderMetrics } from "./panels.js";
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
 const state = {
   meta: null,
+  view: "live",
   scenario: "monsoon_flood",
-  policy: "gridpact_rl",
+  policy: "harness_rl",
   learn: false,
   episode: null,
   index: 0,
@@ -27,9 +29,8 @@ const state = {
 
 const BASE_TICK_MS = 650;
 
-function scenarioMeta(id = state.scenario) {
-  return state.meta.scenarios.find((s) => s.id === id);
-}
+const scenarioMeta = (id = state.scenario) => state.meta.scenarios.find((s) => s.id === id);
+const policyName = (id) => state.meta.policies.find((p) => p.id === id).name;
 
 function banner(text, kind = "info") {
   const el = $("#banner");
@@ -41,26 +42,23 @@ function banner(text, kind = "info") {
 
 // ---------------------------------------------------------------- controls
 function buildControls() {
-  $("#scenario-list").innerHTML = state.meta.scenarios.map((s) => `
-    <button type="button" class="chip" data-scenario="${s.id}">${s.name}</button>`).join("");
-  $("#policy-list").innerHTML = state.meta.policies.map((p) => `
-    <label class="policy" data-policy="${p.id}">
-      <input type="radio" name="policy" value="${p.id}">
-      <span class="policy-swatch p-${p.id}"></span>
-      <span class="policy-name">${p.name}</span>
-    </label>`).join("");
-  $("#legend").innerHTML = Object.values(STATUS).map((s) =>
-    `<span><i style="background:${s.color}"></i>${s.label}</span>`).join("");
+  $("#logo").innerHTML = logo(36);
+  $("#orbit-btn").innerHTML = icon("orbit", 18);
+  $("#labels-btn").innerHTML = icon("tag", 18);
+  $("#home-btn").innerHTML = icon("target", 18);
+  setPlayIcon();
 
-  $("#scenario-list").addEventListener("click", (e) => {
-    const b = e.target.closest("[data-scenario]");
-    if (!b || state.loading) return;
-    state.scenario = b.dataset.scenario;
+  $("#scenario-select").innerHTML = state.meta.scenarios.map((s) => `<option value="${s.id}">${s.name}</option>`).join("");
+  $("#policy-select").innerHTML = state.meta.policies.map((p) => `<option value="${p.id}">${p.name}</option>`).join("");
+  $("#legend").innerHTML = Object.values(STATUS).map((s) => `<span><i style="background:${s.color}"></i>${s.label}</span>`).join("");
+
+  $("#scenario-select").addEventListener("change", (e) => {
+    state.scenario = e.target.value;
     syncControls();
     loadCompare();
     run();
   });
-  $("#policy-list").addEventListener("change", (e) => {
+  $("#policy-select").addEventListener("change", (e) => {
     state.policy = e.target.value;
     syncControls();
     run();
@@ -84,10 +82,11 @@ function buildControls() {
     state.map.setLabels(on);
   });
   $("#home-btn").addEventListener("click", () => state.map.home());
-  $$(".tab").forEach((t) => t.addEventListener("click", () => setTab(t.dataset.tab)));
+  $$(".view-tab").forEach((t) => t.addEventListener("click", () => setView(t.dataset.view)));
+  $$(".seg-btn").forEach((t) => t.addEventListener("click", () => setTab(t.dataset.tab)));
   $("#pane-agents").addEventListener("click", (e) => {
-    const card = e.target.closest("[data-id]");
-    if (card) select(card.dataset.id, false);
+    const row = e.target.closest("[data-id]");
+    if (row) select(row.dataset.id, state.selected !== row.dataset.id);
   });
 
   const canvas = $("#timeline");
@@ -96,15 +95,20 @@ function buildControls() {
     if (!state.episode || !state.timelineGeom) return;
     const rect = canvas.getBoundingClientRect();
     const { x0, width, n } = state.timelineGeom;
-    const t = Math.round(((ev.clientX - rect.left - x0) / width) * (n - 1));
+    const t = Math.floor(((ev.clientX - rect.left - x0) / width) * n);
     setIndex(Math.max(0, Math.min(state.episode.ticks.length - 1, t)));
   };
   canvas.addEventListener("pointerdown", (ev) => { dragging = true; pause(); canvas.setPointerCapture(ev.pointerId); scrub(ev); });
   canvas.addEventListener("pointermove", (ev) => dragging && scrub(ev));
   canvas.addEventListener("pointerup", () => (dragging = false));
-  window.addEventListener("resize", () => { drawTimelineNow(); drawLearning($("#learning-canvas"), state.curve); });
+
+  let resizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { drawLive(); drawCompare(); }, 80);
+  });
   document.addEventListener("keydown", (e) => {
-    if (e.target.matches("input, textarea")) return;
+    if (e.target instanceof Element && e.target.matches("input, select, textarea")) return;
     if (e.code === "Space") { e.preventDefault(); togglePlay(); }
     if (e.code === "ArrowRight" && state.episode) { pause(); setIndex(Math.min(state.index + 1, state.episode.ticks.length - 1)); }
     if (e.code === "ArrowLeft" && state.episode) { pause(); setIndex(Math.max(state.index - 1, 0)); }
@@ -113,41 +117,48 @@ function buildControls() {
 }
 
 function syncControls() {
-  $$("[data-scenario]").forEach((b) => b.classList.toggle("active", b.dataset.scenario === state.scenario));
-  $$(".policy").forEach((l) => {
-    const on = l.dataset.policy === state.policy;
-    l.classList.toggle("active", on);
-    l.querySelector("input").checked = on;
-  });
-  $("#scenario-desc").textContent = scenarioMeta().description;
-  $("#learn-row").hidden = state.policy !== "gridpact_rl";
-  const m = state.meta.model;
-  $("#model-info").textContent = m.trained
-    ? `RL agents trained on ${m.episodes.toLocaleString()} episodes · ${m.states.toLocaleString()} learned states`
-    : "RL agents untrained: run python -m omnigrid.train";
+  $("#scenario-select").value = state.scenario;
+  $("#policy-select").value = state.policy;
+  $("#learn-row").hidden = state.policy !== "harness_rl";
+  $("#hud-scenario").textContent = `${scenarioMeta().name} · ${POLICY_SHORT[state.policy]}`;
+}
+
+function setView(view) {
+  state.view = view;
+  $("#app").dataset.view = view;
+  $$(".view-tab").forEach((t) => t.classList.toggle("active", t.dataset.view === view));
+  if (view === "live") {
+    requestAnimationFrame(() => { state.map.map.resize(); drawLive(); });
+  } else {
+    if (!state.compare) loadCompare();
+    requestAnimationFrame(drawCompare);
+  }
 }
 
 function setTab(tab) {
   state.tab = tab;
-  $$(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === tab));
-  $$(".pane").forEach((p) => (p.hidden = p.id !== `pane-${tab}`));
+  $$(".seg-btn").forEach((t) => t.classList.toggle("active", t.dataset.tab === tab));
+  $("#pane-log").hidden = tab !== "log";
+  $("#pane-agents").hidden = tab !== "agents";
   renderPanels();
-  if (tab === "compare") requestAnimationFrame(() => drawLearning($("#learning-canvas"), state.curve));
 }
 
 function select(id, fly = true) {
-  state.selected = id;
-  state.map.setSelected(id);
+  state.selected = state.selected === id && !fly ? null : id;
+  state.map.setSelected(state.selected);
   if (state.tab !== "agents") setTab("agents");
   else renderPanels();
-  const card = $(`#pane-agents [data-id="${id}"]`);
-  if (card) card.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  if (fly) state.map.flyTo(id);
+  const row = $(`#pane-agents [data-id="${id}"]`);
+  if (row) row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  if (fly && state.selected) state.map.flyTo(id);
 }
 
 // ---------------------------------------------------------------- playback
-function currentTick() {
-  return state.episode ? state.episode.ticks[state.index] : null;
+const currentTick = () => (state.episode ? state.episode.ticks[state.index] : null);
+
+function setPlayIcon() {
+  $("#play-btn").innerHTML = icon(state.playing ? "pause" : "play", 18);
+  $("#play-btn").setAttribute("aria-label", state.playing ? "Pause" : "Play");
 }
 
 function setIndex(i) {
@@ -156,7 +167,7 @@ function setIndex(i) {
   if (tick) state.map.update(tick);
   renderKpis();
   renderPanels();
-  drawTimelineNow();
+  drawLive();
   if (state.episode && i >= state.episode.ticks.length - 1) pause();
 }
 
@@ -175,62 +186,111 @@ function stepPlay() {
 
 function play() {
   if (!state.episode) return;
-  if (state.index >= state.episode.ticks.length - 1) setIndex(0), state.map.reset();
+  if (state.index >= state.episode.ticks.length - 1) { state.map.reset(); setIndex(0); }
   state.playing = true;
-  $("#play-btn").classList.add("playing");
-  $("#play-btn").setAttribute("aria-label", "Pause");
+  setPlayIcon();
   schedule();
 }
 
 function pause() {
   state.playing = false;
   clearTimeout(state.timer);
-  $("#play-btn").classList.remove("playing");
-  $("#play-btn").setAttribute("aria-label", "Play");
+  setPlayIcon();
 }
 
-function togglePlay() {
-  state.playing ? pause() : play();
-}
+const togglePlay = () => (state.playing ? pause() : play());
 
-// ---------------------------------------------------------------- rendering
-function drawTimelineNow() {
+// ---------------------------------------------------------------- live rendering
+function drawLive() {
+  if (state.view !== "live") return;
   const sc = scenarioMeta();
-  state.timelineGeom = drawTimeline($("#timeline"), {
-    ticks: state.episode ? state.episode.ticks : null,
-    supply: state.episode ? state.episode.ticks.map((t) => t.supply) : sc.supply,
-    events: sc.events,
+  const ticks = state.episode ? state.episode.ticks : null;
+  state.timelineGeom = drawDotTimeline($("#timeline"), {
+    ticks,
+    supply: ticks ? ticks.map((t) => t.supply) : sc.supply,
     index: state.index,
   });
+  drawDamageBars($("#damage-bars"), ticks, state.index);
 }
 
 function renderKpis() {
   const t = currentTick();
-  const s = state.episode ? state.episode.summary : null;
   $("#clock").textContent = t ? t.time : "00:00";
-  $("#kpi-supply").textContent = t ? `${t.supply.toFixed(1)}` : "—";
-  $("#kpi-demand").textContent = t ? `crit ${t.demand.critical.toFixed(0)} · full ${t.demand.full.toFixed(0)} MW` : "";
-  $("#kpi-damage").textContent = t ? Math.round(t.damage_total).toLocaleString() : "—";
-  $("#kpi-damage-sub").textContent = t ? `+${t.damage_tick.toFixed(1)} this tick` : "";
-  $("#kpi-fair").textContent = t ? t.fairness.toFixed(3) : "—";
-  $("#kpi-cascades").textContent = t ? String(t.cascade_events) : "—";
-  $("#kpi-cascades-sub").textContent = t && t.cascades.length ? `${t.cascades.length} active now` : "none active";
-  $("#kpi-viol").textContent = t ? String(t.violations) : "—";
-  const nego = t && t.rounds.length
-    ? (t.safety_intervened ? "safety layer intervened" : t.fallback ? `fallback after ${t.rounds.length} rounds` : `agreed in ${t.rounds.length} round${t.rounds.length > 1 ? "s" : ""}`)
-    : (state.policy.startsWith("gridpact") ? "—" : "no negotiation");
-  $("#kpi-viol-sub").textContent = t ? `safe state ${t.safe_state ? "✓" : "✗"} · ${nego}` : "";
-  const dark = t ? Object.values(t.utilities).filter((u) => u.status === "dark").length : 0;
-  $("#hud-dark").textContent = t ? (dark ? `${dark} below critical` : "all critical loads met") : "";
-  $("#hud-dark").classList.toggle("bad", dark > 0);
-  if (s) $("#episode-tag").textContent = `${state.meta.policies.find((p) => p.id === s.policy).name}`;
+  if (!t) return;
+
+  const full = t.demand.full;
+  const gap = t.supply - t.demand.critical;
+  $("#kpi-supply").textContent = t.supply.toFixed(1);
+  const pill = $("#kpi-supply-pill");
+  if (t.supply >= full - 0.5) { pill.className = "pill"; pill.textContent = "covered"; }
+  else if (gap >= 0) { pill.className = "pill dark"; pill.textContent = `−${(full - t.supply).toFixed(0)} MW`; }
+  else { pill.className = "pill bad"; pill.textContent = `${gap.toFixed(0)} MW crit`; }
+  $("#meter-supply").style.width = `${Math.min(100, (t.supply / full) * 100)}%`;
+  $("#meter-crit").style.left = `${Math.min(99.5, (t.demand.critical / full) * 100)}%`;
+  $("#kpi-supply-sub").textContent = `Critical ${t.demand.critical.toFixed(0)} · full demand ${full.toFixed(0)} MW`;
+
+  $("#kpi-damage").textContent = Math.round(t.damage_total).toLocaleString();
+  const dp = $("#kpi-damage-pill");
+  dp.className = t.damage_tick > 25 ? "pill bad" : "pill dark";
+  dp.textContent = `+${t.damage_tick.toFixed(1)}`;
+
+  $("#fair-ring").style.setProperty("--v", String(t.fairness));
+  $("#kpi-fair").textContent = t.fairness.toFixed(2);
+
+  $("#kpi-cascades").textContent = String(t.cascade_events);
+  $("#kpi-viol").textContent = String(t.violations);
+  const safe = $("#kpi-safe");
+  safe.className = t.safe_state ? "pill" : "pill bad";
+  safe.textContent = t.safe_state ? "safe state" : "unsafe";
+  $("#kpi-nego").textContent = t.rounds.length
+    ? (t.safety_intervened ? "Safety layer re-allocated this tick"
+      : t.fallback ? `Priority fallback after ${t.rounds.length} rounds`
+        : `Agreed in ${t.rounds.length} round${t.rounds.length > 1 ? "s" : ""}`)
+    : "No negotiation under this policy";
+
+  const dark = Object.values(t.utilities).filter((u) => u.status === "dark").length;
+  const chip = $("#hud-state");
+  chip.className = dark ? "chip bad" : "chip ok";
+  chip.textContent = dark ? `${dark} below critical` : "All critical loads met";
 }
 
 function renderPanels() {
   const t = currentTick();
-  if (state.tab === "log") renderLog($("#pane-log"), state.episode && state.episode.ticks, state.index);
-  if (state.tab === "agents") renderAgents($("#pane-agents"), state.meta, t, state.selected);
-  if (state.tab === "compare") renderCompare($("#compare-body"), state.compare, state.meta.policies, state.policy);
+  if (state.tab === "log") renderFeed($("#pane-log"), state.episode && state.episode.ticks, state.index);
+  else renderAgents($("#pane-agents"), state.meta, t, state.selected);
+}
+
+// ---------------------------------------------------------------- compare rendering
+function drawCompare() {
+  if (state.view !== "compare") return;
+  drawLearning($("#learning"), state.curve);
+  const data = state.compare;
+  if (!data) return;
+  const policies = state.meta.policies;
+  const S = (id) => data.results[id].summary;
+
+  const bestBase = Math.min(S("static_priority").total_damage, S("uncoordinated").total_damage);
+  $("#cmp-cut").textContent = Math.round((1 - S("harness_rl").total_damage / bestBase) * 100);
+  $("#cmp-scenario").textContent = scenarioMeta(data.scenario).name;
+  const rlVsRules = (1 - S("harness_rl").total_damage / S("harness_rules").total_damage) * 100;
+  $("#cmp-rl").textContent = Math.round(rlVsRules);
+  $("#cmp-rl-note").textContent =
+    `less damage than the hand-written rule-based agents on this scenario, after ${data.model.episodes.toLocaleString()} training episodes.`;
+  $("#cmp-viol").textContent = String(policies.reduce((a, p) => a + S(p.id).capacity_violations, 0));
+
+  drawPolicyBars($("#policy-bars"), policies.map((p) => ({
+    label: POLICY_SHORT[p.id],
+    sub: p.id.startsWith("harness") ? "negotiating" : "baseline",
+    value: S(p.id).total_damage,
+    color: POLICY_COLORS[p.id],
+    solid: p.id.startsWith("harness"),
+  })));
+  const series = {};
+  for (const p of policies) series[p.id] = data.results[p.id].cumulative_damage;
+  drawCumulative($("#cumulative"), series);
+  $("#cumulative-key").innerHTML = policies.map((p) =>
+    `<span><i class="k" style="background:${POLICY_COLORS[p.id]};${p.id === "harness_rl" ? "box-shadow:0 0 0 1.5px #0E0F0C" : ""}"></i>${POLICY_SHORT[p.id]}</span>`).join("");
+  renderMetrics($("#metrics"), data, policies);
 }
 
 // ---------------------------------------------------------------- data
@@ -240,17 +300,19 @@ async function run() {
   pause();
   $("#run-btn").disabled = true;
   $("#run-btn").textContent = "Negotiating…";
-  banner(`Running 24h “${scenarioMeta().name}” with ${state.meta.policies.find((p) => p.id === state.policy).name}…`);
   try {
-    const data = await api.run(state.scenario, state.policy, state.learn && state.policy === "gridpact_rl");
+    const data = await api.run(state.scenario, state.policy, state.learn && state.policy === "harness_rl");
     state.episode = data;
-    state.map.reset();
     state.meta.model = data.model;
+    state.map.reset();
     syncControls();
     setIndex(0);
-    banner(data.learned ? `Agents learned from this run: now ${data.model.episodes.toLocaleString()} episodes of experience.` : "");
-    if (data.learned) { loadLearning(); loadCompare(); }
-    if (data.learned) setTimeout(() => banner(""), 4000);
+    if (data.learned) {
+      banner(`Agents learned from this run: ${data.model.episodes.toLocaleString()} episodes of experience.`);
+      setTimeout(() => banner(""), 4000);
+      loadLearning();
+      loadCompare();
+    } else banner("");
     play();
   } catch (err) {
     banner(`Simulation failed: ${err.message}`, "error");
@@ -263,16 +325,12 @@ async function run() {
 
 async function loadCompare() {
   const scenario = state.scenario;
-  state.compare = null;
-  renderPanels();
   try {
     const data = await api.compare(scenario);
-    if (scenario === state.scenario) state.compare = data;
+    if (scenario === state.scenario) { state.compare = data; drawCompare(); }
   } catch (err) {
-    $("#compare-body").innerHTML = `<div class="empty">Comparison failed: ${err.message}</div>`;
-    return;
+    $("#metrics").innerHTML = `<div class="empty">Comparison failed: ${err.message}</div>`;
   }
-  renderPanels();
 }
 
 async function loadLearning() {
@@ -283,11 +341,10 @@ async function loadLearning() {
     if (evals.length >= 2) {
       const best = Math.min(...evals.map((p) => p.total));
       const base = evals[0].heuristic_total;
-      $("#learning-note").innerHTML =
-        `Best greedy policy: <b>${Math.round(best).toLocaleString()}</b> harm across the 3 scenarios vs ` +
-        `<b>${Math.round(base).toLocaleString()}</b> for the rule-based agents (${Math.round((1 - best / base) * 100)}% better).`;
+      $("#learning-note").textContent =
+        `Damage across all 3 scenarios: best ${Math.round(best).toLocaleString()} vs ${Math.round(base).toLocaleString()} for rule-based agents (${Math.round((1 - best / base) * 100)}% better).`;
     }
-    if (state.tab === "compare") drawLearning($("#learning-canvas"), state.curve);
+    drawCompare();
   } catch (err) {
     $("#learning-note").textContent = `Learning curve unavailable: ${err.message}`;
   }
@@ -297,15 +354,14 @@ async function init() {
   try {
     state.meta = await api.meta();
   } catch (err) {
-    banner(`Cannot reach the Omni Grid Harness server: ${err.message}`, "error");
+    document.body.insertAdjacentHTML("beforeend", `<div class="banner error" style="position:fixed;top:84px;left:16px">Cannot reach the Omni Grid Harness server: ${err.message}</div>`);
     return;
   }
   state.map = new CityMap($("#map"), state.meta, { onSelect: (id) => select(id) });
   window.omni = state;   // handy for poking at the live state from the browser console
   buildControls();
-  renderKpis();
   renderPanels();
-  drawTimelineNow();
+  drawLive();
   loadCompare();
   loadLearning();
   // Run even if the basemap tiles are unreachable (offline demo): the simulation does not need them.
