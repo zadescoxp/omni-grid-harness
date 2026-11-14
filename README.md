@@ -14,13 +14,13 @@ no deadlock, and fairness, while minimising total damage across a 24-hour disast
 
 | Policy | Monsoon flood | Heatwave | Grid collapse | Capacity violations |
 | --- | ---: | ---: | ---: | ---: |
-| **GridPact · RL agents** | **2,258** | **983** | **2,702** | 0 |
-| GridPact · rule-based agents | 2,515 | 1,226 | 3,341 | 0 |
+| **Omni Grid Harness · RL agents** | **2,258** | **983** | **2,702** | 0 |
+| Omni Grid Harness · rule-based agents | 2,515 | 1,226 | 3,341 | 0 |
 | Static priority list | 13,393 | 7,076 | 17,826 | 0 |
 | Uncoordinated (today) | 6,204 | 3,705 | 7,904 | 0 |
 
 Damage is in harm points (lower is better); the **Compare** tab and `/api/compare` show the live numbers.
-GridPact cuts damage by 64–73% against the better of the two non-negotiating baselines. Across the three demo scenarios the trained RL agents cause **16% less damage** than the
+Omni Grid Harness cuts damage by 64–73% against the better of the two non-negotiating baselines. Across the three demo scenarios the trained RL agents cause **16% less damage** than the
 hand-written rule-based agents. On **200 unseen randomised disasters** they average **10% less damage**
 and do better in 134 of 200 runs, so the gain generalises beyond the scenarios used for model selection.
 
@@ -62,13 +62,13 @@ Apply power ──► backups drain/recharge ──► damage + cascades ──�
 
 | Agent | Area | Backup | Life-critical |
 | --- | --- | --- | --- |
-| 🏥 Victoria Hospital | K.R. Market | diesel generator | yes |
-| 🏥 Bowring Hospital | Shivajinagar | diesel generator | yes |
-| 💧 Malleshwaram Pumping Station | Malleshwaram | reservoir tank | |
-| 💧 Shanthinagar Lift Station | Shanthinagar | sump capacity | |
-| 🚒 Emergency Command Centre | Ambedkar Veedhi | UPS bank | |
-| 🚒 Halasuru Fire Station | Halasuru | none | |
-| 📡 MG Road Telecom Exchange | MG Road | battery bank | |
+| Victoria Hospital | K.R. Market | diesel generator | yes |
+| Bowring Hospital | Shivajinagar | diesel generator | yes |
+| Malleshwaram Pumping Station | Malleshwaram | reservoir tank | |
+| Shanthinagar Lift Station | Shanthinagar | sump capacity | |
+| Emergency Command Centre | Ambedkar Veedhi | UPS bank | |
+| Halasuru Fire Station | Halasuru | none | |
+| MG Road Telecom Exchange | MG Road | battery bank | |
 
 Facilities are simulated and placed in real Bengaluru neighbourhoods. They do not model real plant data.
 
@@ -128,7 +128,7 @@ python3 -m unittest discover -s tests -t .
 | `GET /api/learning` | RL learning curve |
 
 Scenarios: `monsoon_flood`, `heatwave`, `grid_collapse`.
-Policies: `gridpact_rl`, `gridpact_heuristic`, `static_priority`, `uncoordinated`.
+Policies: `harness_rl`, `harness_rules`, `static_priority`, `uncoordinated`.
 
 ## Project layout
 
@@ -146,7 +146,7 @@ omnigrid/
   simulation.py   episode loop and metrics
   train.py        training CLI and learning curve
   server.py       HTTP API and static file server
-web/              3D map dashboard (MapLibre GL, vanilla JS)
+web/              dashboard: 3D map (MapLibre GL), dot-matrix timeline, compare view (vanilla JS)
 models/           trained Q-tables and learning curve
 tests/            protocol, ledger and end-to-end tests
 ```
