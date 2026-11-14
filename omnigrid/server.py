@@ -25,12 +25,13 @@ from .config import (DEPENDENCIES, EPISODE_TICKS, KIND_ICONS, SHORT_NAMES, SUBST
                      UTILITIES, UTILITY_IDS)
 from .scenario import SCENARIOS, get_scenario
 from .simulation import POLICIES, Simulation
-from .train import MODEL_PATH, load_curve, save_curve
+from .train import MODEL_PATH, initialize_data_dir, load_curve, save_curve
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB_DIR = ROOT / "web"
 
 _team_lock = threading.Lock()
+initialize_data_dir()
 _team = QTeam(UTILITY_IDS)
 _team.load(MODEL_PATH)
 _compare_cache: dict[tuple[str, int], dict] = {}
@@ -151,7 +152,7 @@ class Handler(SimpleHTTPRequestHandler):
 def main() -> None:
     port = int(os.environ.get("PORT", "8000"))
     handler = partial(Handler, directory=str(WEB_DIR))
-    httpd = ThreadingHTTPServer(("127.0.0.1", port), handler)
+    httpd = ThreadingHTTPServer(("0.0.0.0", port), handler)
     print(f"Omni Grid Harness running at http://localhost:{port}  "
           f"(RL model: {_team.episodes} training episodes)")
     try:
