@@ -1,4 +1,4 @@
-"""GridPact negotiation protocol and safety layer.
+"""Omni Grid Harness negotiation protocol and safety layer.
 
 Per tick:
   1. Every agent sees its own (simulator-computed) need and bids one of four actions.
