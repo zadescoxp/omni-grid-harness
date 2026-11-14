@@ -37,8 +37,8 @@ def benchmark(seed: int, random_cases: int) -> dict:
     for scenario_id in SCENARIOS:
         scenario = get_scenario(scenario_id)
         named[scenario_id] = {
-            "gridpact_rl": round(evaluate("gridpact_rl", scenario, seed, team), 2),
-            "gridpact_heuristic": round(evaluate("gridpact_heuristic", scenario, seed), 2),
+            "harness_rl": round(evaluate("harness_rl", scenario, seed, team), 2),
+            "harness_rules": round(evaluate("harness_rules", scenario, seed), 2),
             "static_priority": round(evaluate("static_priority", scenario, seed), 2),
             "uncoordinated": round(evaluate("uncoordinated", scenario, seed), 2),
         }
@@ -50,8 +50,8 @@ def benchmark(seed: int, random_cases: int) -> dict:
     for case_index in range(random_cases):
         scenario = random_scenario(rng)
         case_seed = seed + case_index
-        rl = evaluate("gridpact_rl", scenario, case_seed, team)
-        heuristic = evaluate("gridpact_heuristic", scenario, case_seed)
+        rl = evaluate("harness_rl", scenario, case_seed, team)
+        heuristic = evaluate("harness_rules", scenario, case_seed)
         rl_scores.append(rl)
         heuristic_scores.append(heuristic)
         wins += rl < heuristic
@@ -65,8 +65,8 @@ def benchmark(seed: int, random_cases: int) -> dict:
         "model": {"path": str(MODEL_PATH.name), "episodes": team.episodes, "states": team.state_count()},
         "named_scenarios": named,
         "random_results": {
-            "gridpact_rl_mean_damage": round(rl_mean, 2),
-            "gridpact_heuristic_mean_damage": round(heuristic_mean, 2),
+            "harness_rl_mean_damage": round(rl_mean, 2),
+            "harness_rules_mean_damage": round(heuristic_mean, 2),
             "rl_damage_reduction_percent": round((1 - rl_mean / heuristic_mean) * 100, 2)
             if heuristic_mean else 0.0,
             "rl_wins": wins,
