@@ -1,4 +1,4 @@
-"""Rule-based negotiating agent: the hand-written policy GridPact's RL agents start from and are measured against."""
+"""Rule-based negotiating agent: the hand-written policy Omni Grid Harness's RL agents start from and are measured against."""
 from __future__ import annotations
 
 from ..protocol import Action, Observation
