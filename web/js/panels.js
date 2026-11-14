@@ -1,109 +1,113 @@
-// Side-panel renderers: live negotiation log, agent cards and the policy comparison.
+// Side-panel and compare-view renderers.
+import { icon, KIND_ICON, LOG_ICON } from "./icons.js";
 import { STATUS } from "./map.js";
+import { POLICY_COLORS } from "./charts.js";
 
-const ACTIONS = ["Full request", "Essential only", "Critical only", "Drawing backup"];
-const LOG_ICONS = {
-  event: "event", negotiation: "nego", agreement: "ok", fallback: "fallback", safety: "safety",
-  alert: "alert", recovery: "ok", cascade: "cascade", info: "info",
-};
-
+const ACTIONS = ["Full", "Essential", "Critical", "Backup"];
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fmt = (v, d = 1) => Number(v).toFixed(d);
 
-export function renderLog(el, ticks, index) {
+export const POLICY_SHORT = {
+  harness_rl: "Harness RL",
+  harness_rules: "Harness rules",
+  static_priority: "Static priority",
+  uncoordinated: "Uncoordinated",
+};
+
+/** Negotiation feed, newest first, grouped by hour. */
+export function renderFeed(el, ticks, index) {
   if (!ticks || !ticks.length) {
     el.innerHTML = `<div class="empty">Run a simulation to watch the agents negotiate.</div>`;
     return;
   }
-  const items = [];
-  for (let i = Math.min(index, ticks.length - 1); i >= 0 && items.length < 220; i--) {
-    for (let j = ticks[i].log.length - 1; j >= 0; j--) items.push(ticks[i].log[j]);
+  const groups = [];
+  for (let i = Math.min(index, ticks.length - 1); i >= 0 && groups.reduce((a, g) => a + g.items.length, 0) < 160; i--) {
+    const items = ticks[i].log;
+    if (!items.length) continue;
+    const hour = ticks[i].time.slice(0, 2);
+    let g = groups[groups.length - 1];
+    if (!g || g.hour !== hour) groups.push((g = { hour, items: [] }));
+    for (let j = items.length - 1; j >= 0; j--) g.items.push(items[j]);
   }
-  if (!items.length) {
+  if (!groups.length) {
     el.innerHTML = `<div class="empty">Grid is stable: supply covers every utility’s full load.</div>`;
     return;
   }
-  el.innerHTML = items.map((m) => `
-    <div class="log-item k-${LOG_ICONS[m.kind] || "info"}">
-      <span class="log-time">${esc(m.time)}</span>
-      <span class="log-text">${esc(m.text)}</span>
-    </div>`).join("");
+  el.innerHTML = groups.map((g) => `
+    <div class="feed-hour">${g.hour}:00</div>
+    ${g.items.map((m) => `
+      <div class="feed-item t-${m.kind}">
+        <span class="feed-icon">${icon(LOG_ICON[m.kind] || "info", 16)}</span>
+        <span class="feed-text">${esc(m.text)}</span>
+        <span class="feed-time">${esc(m.time)}</span>
+      </div>`).join("")}`).join("");
 }
 
+/** Compact agent rows: status, served MW, a tiered capsule bar, and expandable detail. */
 export function renderAgents(el, meta, tick, selected) {
   el.innerHTML = meta.utilities.map((u) => {
     const s = tick ? tick.utilities[u.id] : null;
     const status = s ? s.status : "full";
-    const full = s ? s.critical + s.essential + s.deferrable : u.full;
-    const pct = (v) => `${Math.max(0, Math.min(100, (v / full) * 100)).toFixed(1)}%`;
     const crit = s ? s.critical : u.critical;
     const ess = s ? s.essential : u.essential;
+    const def = s ? s.deferrable : u.deferrable;
+    const full = crit + ess + def;
+    const pct = (v) => `${Math.max(0, Math.min(100, (v / full) * 100)).toFixed(1)}%`;
+    const grid = s ? s.alloc : u.full;
+    const backup = s ? s.discharged : 0;
     const served = s ? s.served : u.full;
-    const alloc = s ? s.alloc : u.full;
-    const buffer = s ? s.buffer_pct : 1;
-    const action = s && s.action !== null && s.action !== undefined ? ACTIONS[s.action] : "—";
     const deps = u.depends_on.length
-      ? u.depends_on.map((d) => meta.utilities.find((x) => x.id === d).name.split(" ")[0]).join(", ")
+      ? u.depends_on.map((d) => meta.utilities.find((x) => x.id === d).short).join(", ")
       : "none";
+    const open = selected === u.id;
     return `
-      <article class="agent ${selected === u.id ? "selected" : ""}" data-id="${u.id}" style="--status:${STATUS[status].color}">
-        <header>
-          <span class="agent-icon">${u.icon}</span>
-          <div class="agent-title">
-            <h4>${esc(u.name)}</h4>
-            <span>${esc(u.area)} · priority ${fmt(u.base_priority, 1)}${u.life_critical ? " · life-critical" : ""}</span>
+      <div class="agent ${open ? "selected" : ""}" data-id="${u.id}" data-status="${status}" style="--status:${STATUS[status].color}">
+        <div class="agent-row">
+          <span class="agent-icon">${icon(KIND_ICON[u.kind], 17)}</span>
+          <div style="min-width:0">
+            <div class="agent-name">${esc(u.name)}</div>
+            <div class="agent-sub">${esc(STATUS[status].label)} · ${esc(u.area)}</div>
           </div>
-          <span class="pill">${STATUS[status].label}</span>
-        </header>
-        <div class="tiers" title="Critical | essential | deferrable load">
-          <span class="t-crit" style="width:${pct(crit)}"></span>
-          <span class="t-ess" style="width:${pct(ess)}"></span>
-          <span class="t-def" style="width:${pct(full - crit - ess)}"></span>
-          <i class="served" style="width:${pct(served)}"></i>
+          <div class="agent-mw">${fmt(served)}<small>of ${fmt(full)} MW</small></div>
         </div>
-        <dl>
-          <div><dt>Grid</dt><dd>${fmt(alloc)} MW</dd></div>
-          <div><dt>Served</dt><dd>${fmt(served)} / ${fmt(full)}</dd></div>
-          <div><dt>Backup</dt><dd>${u.buffer_capacity > 0 ? `${Math.round(buffer * 100)}%` : "none"}</dd></div>
-          <div><dt>Last bid</dt><dd>${action}</dd></div>
+        <div class="capsule" title="Critical, essential and deferrable load; dark fill = grid power, striped = backup">
+          <span class="c-crit" style="width:${pct(crit)}"></span>
+          <span class="c-ess" style="width:${pct(ess)}"></span>
+          <span class="c-def" style="width:${pct(def)}"></span>
+          <i style="width:${pct(grid)}"></i>
+          ${backup > 0.01 ? `<i class="backup" style="left:${pct(grid)};width:${pct(backup)}"></i>` : ""}
+        </div>
+        ${open ? `
+        <dl class="agent-detail">
+          <div><dt>Backup</dt><dd>${u.buffer_capacity > 0 ? `${Math.round((s ? s.buffer_pct : 1) * 100)}%` : "none"}</dd></div>
+          <div><dt>Last bid</dt><dd>${s && s.action !== null && s.action !== undefined ? ACTIONS[s.action] : "—"}</dd></div>
           <div><dt>Credit</dt><dd>${s ? s.credit : 0}</dd></div>
-          <div><dt>Harm/tick</dt><dd>${s ? fmt(s.damage) : "0.0"}</dd></div>
+          <div><dt>Harm</dt><dd>${s ? fmt(s.damage) : "0.0"}</dd></div>
         </dl>
-        <footer>Depends on: ${esc(deps)}${s && s.effectiveness < 1 ? ` · <b>effectiveness ${Math.round(s.effectiveness * 100)}%</b>` : ""}</footer>
-      </article>`;
+        <div class="agent-foot">Priority ${fmt(u.base_priority)}${u.life_critical ? " · life-critical" : ""} · depends on ${esc(deps)}${s && s.effectiveness < 1 ? ` · <b>effectiveness ${Math.round(s.effectiveness * 100)}%</b>` : ""}</div>` : ""}
+      </div>`;
   }).join("");
 }
 
-export function renderCompare(el, data, policies, activePolicy) {
-  if (!data) {
-    el.innerHTML = `<div class="empty">Loading comparison…</div>`;
-    return;
-  }
-  const rows = policies.map((p) => ({ ...p, s: data.results[p.id].summary }));
-  const maxD = Math.max(...rows.map((r) => r.s.total_damage));
-  const bestBase = Math.min(data.results.static_priority.summary.total_damage,
-                            data.results.uncoordinated.summary.total_damage);
-  const rl = data.results.gridpact_rl.summary.total_damage;
-  const cut = bestBase > 0 ? Math.round((1 - rl / bestBase) * 100) : 0;
+/** Outcome table for the compare view, with the best value in each row highlighted. */
+export function renderMetrics(el, data, policies) {
+  const rows = [
+    ["Total damage", (s) => s.total_damage, (v) => Math.round(v).toLocaleString(), "min"],
+    ["Cascade events", (s) => s.cascade_events, (v) => v, "min"],
+    ["Critical hours lost", (s) => s.critical_hours_lost, (v) => fmt(v), "min"],
+    ["Longest outage", (s) => s.max_starvation_ticks / 4, (v) => `${fmt(v)} h`, "min"],
+    ["Avg fairness (Jain)", (s) => s.avg_fairness, (v) => fmt(v, 3), "max"],
+    ["Capacity violations", (s) => s.capacity_violations, (v) => v, "none"],
+  ];
   el.innerHTML = `
-    <div class="headline"><b>${cut}%</b> less total damage than the best non-negotiating baseline</div>
-    <div class="bars">
-      ${rows.map((r) => `
-        <div class="bar-row ${r.id === activePolicy ? "active" : ""}">
-          <span class="bar-name">${esc(r.name)}</span>
-          <span class="bar-track"><span class="bar-fill p-${r.id}" style="width:${((r.s.total_damage / maxD) * 100).toFixed(1)}%"></span></span>
-          <span class="bar-val">${Math.round(r.s.total_damage).toLocaleString()}</span>
-        </div>`).join("")}
-    </div>
     <table class="metrics">
-      <thead><tr><th></th>${rows.map((r) => `<th>${esc(r.name.replace("GridPact · ", "").replace(" (today)", ""))}</th>`).join("")}</tr></thead>
+      <thead><tr><th></th>${policies.map((p) => `<th><span class="pol"><i style="background:${POLICY_COLORS[p.id]};${p.id === "harness_rl" ? "box-shadow:0 0 0 1.5px #0E0F0C" : ""}"></i>${POLICY_SHORT[p.id]}</span></th>`).join("")}</tr></thead>
       <tbody>
-        <tr><td>Cascade events</td>${rows.map((r) => `<td>${r.s.cascade_events}</td>`).join("")}</tr>
-        <tr><td>Critical hours lost</td>${rows.map((r) => `<td>${fmt(r.s.critical_hours_lost)}</td>`).join("")}</tr>
-        <tr><td>Longest outage (h)</td>${rows.map((r) => `<td>${fmt(r.s.max_starvation_ticks / 4)}</td>`).join("")}</tr>
-        <tr><td>Avg fairness (Jain)</td>${rows.map((r) => `<td>${fmt(r.s.avg_fairness, 3)}</td>`).join("")}</tr>
-        <tr><td>Capacity violations</td>${rows.map((r) => `<td>${r.s.capacity_violations}</td>`).join("")}</tr>
-        <tr><td>Max rounds / tick</td>${rows.map((r) => `<td>${r.s.max_rounds || "—"}</td>`).join("")}</tr>
+        ${rows.map(([label, get, show, mode]) => {
+          const vals = policies.map((p) => get(data.results[p.id].summary));
+          const best = mode === "min" ? Math.min(...vals) : mode === "max" ? Math.max(...vals) : null;
+          return `<tr><td>${label}</td>${vals.map((v) => `<td class="${best !== null && v === best ? "best" : ""}"><span>${show(v)}</span></td>`).join("")}</tr>`;
+        }).join("")}
       </tbody>
     </table>`;
 }
