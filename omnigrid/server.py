@@ -58,7 +58,7 @@ def meta() -> dict:
 
 def run_episode(scenario_id: str, policy: str, learn: bool) -> dict:
     scenario = get_scenario(scenario_id)
-    if policy == "gridpact_rl":
+    if policy == "harness_rl":
         with _team_lock:
             if learn:
                 for agent in _team.agents.values():
@@ -76,7 +76,7 @@ def run_episode(scenario_id: str, policy: str, learn: bool) -> dict:
     else:
         sim = Simulation(scenario, policy)
         ticks = sim.run()
-    return {"scenario": scenario_id, "policy": policy, "learned": learn and policy == "gridpact_rl",
+    return {"scenario": scenario_id, "policy": policy, "learned": learn and policy == "harness_rl",
             "summary": sim.summary().to_dict(), "ticks": ticks, "model": model_info()}
 
 
@@ -86,7 +86,7 @@ def compare(scenario_id: str) -> dict:
         return _compare_cache[key]
     results = {}
     for policy in POLICIES:
-        if policy == "gridpact_rl":
+        if policy == "harness_rl":
             with _team_lock:
                 sim = Simulation(get_scenario(scenario_id), policy, team=_team, narrate=False)
                 ticks = sim.run()
@@ -129,7 +129,7 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json(meta())
             if url.path == "/api/run":
                 scenario = q.get("scenario", "monsoon_flood")
-                policy = q.get("policy", "gridpact_rl")
+                policy = q.get("policy", "harness_rl")
                 if scenario not in SCENARIOS or policy not in POLICIES:
                     return self._json({"error": "unknown scenario or policy"}, HTTPStatus.BAD_REQUEST)
                 return self._json(run_episode(scenario, policy, q.get("learn") == "1"))
