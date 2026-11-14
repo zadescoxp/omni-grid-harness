@@ -94,6 +94,10 @@ shortfall, backup level, starvation credit, crisis flag, upstream outage), so th
 decentralised. The reward is 70% shared (city-wide damage) and 30% individual, which teaches
 cooperation instead of greedy bidding. Unvisited states fall back to the rule-based policy, so the RL
 agents never start below the heuristic. Agents can keep learning from live runs in the dashboard.
+For deployments with persistent storage, set `OMNIGRID_DATA_DIR` to the mounted directory (for example,
+`/var/data`). On first startup, the checked-in model and learning curve are copied there if they are
+not already present; subsequent learning runs update those persistent files. Without this setting,
+the project continues to use `models/`.
 
 ## Run it
 
