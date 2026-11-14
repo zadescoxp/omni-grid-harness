@@ -23,25 +23,25 @@ class SimulationTests(unittest.TestCase):
                     for t in ticks:
                         self.assertLessEqual(t["allocated"], t["supply"] + 1e-3)
 
-    def test_gridpact_beats_baselines_on_named_scenarios(self):
+    def test_harness_beats_baselines_on_named_scenarios(self):
         for sid in SCENARIOS:
             damage = {}
-            for policy in ("gridpact_heuristic", "static_priority", "uncoordinated"):
+            for policy in ("harness_rules", "static_priority", "uncoordinated"):
                 sim = Simulation(get_scenario(sid), policy, narrate=False)
                 sim.run()
                 damage[policy] = sim.total_damage
-            self.assertLess(damage["gridpact_heuristic"], damage["static_priority"], sid)
-            self.assertLess(damage["gridpact_heuristic"], damage["uncoordinated"], sid)
+            self.assertLess(damage["harness_rules"], damage["static_priority"], sid)
+            self.assertLess(damage["harness_rules"], damage["uncoordinated"], sid)
 
     def test_negotiation_terminates_within_bound_every_tick(self):
-        sim = Simulation(get_scenario("grid_collapse"), "gridpact_heuristic")
+        sim = Simulation(get_scenario("grid_collapse"), "harness_rules")
         for t in sim.run():
             self.assertLessEqual(len(t["rounds"]), 3)
             self.assertTrue(t["safe_state"])
 
     def test_learning_updates_q_table_and_episode_count(self):
         team = QTeam(UTILITY_IDS)
-        sim = Simulation(random_scenario(random.Random(3)), "gridpact_rl", team=team, learn=True,
+        sim = Simulation(random_scenario(random.Random(3)), "harness_rl", team=team, learn=True,
                          narrate=False)
         sim.run()
         self.assertEqual(team.episodes, 1)
