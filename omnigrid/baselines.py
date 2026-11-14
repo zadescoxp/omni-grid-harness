@@ -1,4 +1,4 @@
-"""Baseline allocators that model how utilities behave today, for comparison with GridPact.
+"""Baseline allocators that model how utilities behave today, for comparison with Omni Grid Harness.
 
 - uncoordinated: every utility grabs its full load in arbitrary (random) order until the grid
   runs out, with no negotiation, priorities, or safety layer.
