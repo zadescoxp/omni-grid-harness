@@ -24,6 +24,18 @@ GridPact cuts damage by 64–73% against the better of the two non-negotiating b
 hand-written rule-based agents. On **200 unseen randomised disasters** they average **10% less damage**
 and do better in 134 of 200 runs, so the gain generalises beyond the scenarios used for model selection.
 
+Reproduce the named-scenario scores and random-disaster comparison with the checked-in model:
+
+```bash
+python3 -m omnigrid.benchmark --seed 42 --random-cases 200 --output models/benchmark_seed42.json
+```
+
+The benchmark evaluates each named scenario once under all four policies, then generates 200 random
+scenarios from seed 42 and compares RL with the rule-based policy on each same scenario. Both policies
+use the same per-case simulation seed; the report includes the model episode count and state count.
+The random results report mean damage, RL wins, and mean damage reduction. Use the JSON report to
+confirm the figures above for the current `models/qtable.json`; retraining can change those figures.
+
 ## How it works
 
 ```
