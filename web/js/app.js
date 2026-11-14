@@ -25,6 +25,7 @@ const state = {
   curve: [],
   map: null,
   loading: false,
+  runQueued: false,
 };
 
 const BASE_TICK_MS = 650;
@@ -295,13 +296,17 @@ function drawCompare() {
 
 // ---------------------------------------------------------------- data
 async function run() {
-  if (state.loading) return;
+  if (state.loading) {
+    state.runQueued = true;
+    return;
+  }
   state.loading = true;
   pause();
   $("#run-btn").disabled = true;
   $("#run-btn").textContent = "Negotiating…";
   try {
     const data = await api.run(state.scenario, state.policy, state.learn && state.policy === "harness_rl");
+    if (state.runQueued) return;
     state.episode = data;
     state.meta.model = data.model;
     state.map.reset();
@@ -315,11 +320,15 @@ async function run() {
     } else banner("");
     play();
   } catch (err) {
-    banner(`Simulation failed: ${err.message}`, "error");
+    if (!state.runQueued) banner(`Simulation failed: ${err.message}`, "error");
   } finally {
     state.loading = false;
     $("#run-btn").disabled = false;
     $("#run-btn").textContent = "Run simulation";
+    if (state.runQueued) {
+      state.runQueued = false;
+      run();
+    }
   }
 }
 
