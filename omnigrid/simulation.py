@@ -16,12 +16,12 @@ from .scenario import Scenario
 from .utility import UtilityState
 
 POLICIES = {
-    "gridpact_rl": "GridPact · RL agents",
-    "gridpact_heuristic": "GridPact · rule-based agents",
+    "harness_rl": "Omni Grid Harness · RL agents",
+    "harness_rules": "Omni Grid Harness · rule-based agents",
     "static_priority": "Static priority list",
     "uncoordinated": "Uncoordinated (today)",
 }
-NEGOTIATING = {"gridpact_rl", "gridpact_heuristic"}
+NEGOTIATING = {"harness_rl", "harness_rules"}
 
 SHARED_REWARD = 0.7
 OWN_REWARD = 0.3
@@ -66,13 +66,13 @@ class Simulation:
                  learn: bool = False, narrate: bool = True):
         if policy not in POLICIES:
             raise KeyError(f"unknown policy '{policy}'")
-        if policy == "gridpact_rl" and team is None:
-            raise ValueError("gridpact_rl needs a QTeam")
+        if policy == "harness_rl" and team is None:
+            raise ValueError("harness_rl needs a QTeam")
         self.scenario = scenario
         self.policy = policy
         self.team = team
-        self.learn = learn and policy == "gridpact_rl"
-        if policy == "gridpact_rl":
+        self.learn = learn and policy == "harness_rl"
+        if policy == "harness_rl":
             self.agents = team.agents
             team.set_learning(self.learn)
         else:
